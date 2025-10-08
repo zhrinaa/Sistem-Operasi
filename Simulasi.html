@@ -110,7 +110,7 @@
   <button id="add">Tambah Dokumen</button>
   <button id="start">Mulai</button>
   <button id="pause">Jeda</button>
-  <button id="reset">Reset</button>
+  <button id="reset" onclick="location.reload()">Reset</button>
 </div>
 
 <div class="printer-box">
@@ -211,7 +211,7 @@ document.getElementById("reset").onclick = () => {
   queue = [];
   printing = false;
   paused = false;
-  docId = 1;
+  docId = 0;
   clearInterval(daemon);
   statusDiv.textContent = "Idle";
   statusDiv.className = "status-idle";
@@ -222,4 +222,3 @@ document.getElementById("reset").onclick = () => {
 
 </body>
 </html>
-
