@@ -163,7 +163,8 @@ function addDocument() {
 async function printerDaemon() {
   if (paused) return;
 
-    if (queue.length > 0 && !printing) { const currentDoc = queue.find(d => d.status === "waiting"); if (!currentDoc) return;
+    if (queue.length > 0 && !printing) { const currentDoc = queue.find(d => d.status === "waiting"); 
+    if (!currentDoc) return;
     printing = true;
 
     currentDoc.status = "printing";
@@ -172,7 +173,7 @@ async function printerDaemon() {
     renderQueue();
     log(`🖨️ ${currentDoc.name} sedang dicetak...`);
 
-    await new Promise(r => setTimeout(r, 2500)); // simulasi waktu cetak 2.5 detik
+    await new Promise(r => setTimeout(r, 2500)); 
 
     currentDoc.status = "done";
     log(`✅ ${currentDoc.name} selesai dicetak.`);
@@ -185,7 +186,7 @@ async function printerDaemon() {
       statusDiv.className = "status-idle";
       log("📭 Semua dokumen telah dicetak.");
     } else {
-      printerDaemon(); // lanjut mencetak berikutnya
+      printerDaemon(); 
     }
   }
 }
@@ -221,3 +222,4 @@ document.getElementById("reset").onclick = () => {
 
 </body>
 </html>
+
