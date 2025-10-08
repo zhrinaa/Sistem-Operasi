@@ -40,7 +40,6 @@
 
   button:hover { background: rgb(214, 138, 151); }
  
-
   .printer-box {
     background: #fff;
     border: 2px solid (#c2619d);
@@ -104,121 +103,120 @@
 </head>
 <body>
 
-<h1>Simulasi Spooling Printer</h1>
+    <h1>Simulasi Spooling Printer</h1>
+        <div class="controls">
+          <button id="add">Tambah Dokumen</button>
+          <button id="start">Mulai</button>
+          <button id="pause">Jeda</button>
+          <button id="reset" onclick="location.reload()">Reset</button>
+        </div>
 
-<div class="controls">
-  <button id="add">Tambah Dokumen</button>
-  <button id="start">Mulai</button>
-  <button id="pause">Jeda</button>
-  <button id="reset" onclick="location.reload()">Reset</button>
-</div>
+        <div class="printer-box">
+          <h3>Status Printer:</h3>
+          <p id="status" class="status-idle">Idle</p>
+        </div>
 
-<div class="printer-box">
-  <h3>Status Printer:</h3>
-  <p id="status" class="status-idle">Idle</p>
-</div>
+    <h2>Antrian Dokumen:</h2>
+        <div class="queue" id="queue"></div>
 
-<h2>Antrian Dokumen:</h2>
-<div class="queue" id="queue"></div>
-
-<h2>Log Aktivitas:</h2>
-<div id="log"></div>
+    <h2>Log Aktivitas:</h2>
+        <div id="log"></div>
 
 <script>
-let queue = [];
-let printing = false;
-let paused = false;
-let docId = 0;
-let daemon;
+    let queue = [];
+    let printing = false;
+    let paused = false;
+    let docId = 0;
+    let daemon;
+    
+    const queueDiv = document.getElementById("queue");
+    const statusDiv = document.getElementById("status");
+    const logDiv = document.getElementById("log");
+    
+    function log(message) {
+      const time = new Date().toLocaleTimeString();
+      logDiv.innerHTML += `[${time}] ${message}<br>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
 
-const queueDiv = document.getElementById("queue");
-const statusDiv = document.getElementById("status");
-const logDiv = document.getElementById("log");
+    function renderQueue() {
+      queueDiv.innerHTML = "";
+      queue.forEach(doc => {
+        const div = document.createElement("div");
+        div.classList.add("doc");
+        if (doc.status === "printing") div.classList.add("printing");
+        if (doc.status === "done") div.classList.add("done");
+        div.textContent = doc.name;
+        queueDiv.appendChild(div);
+      });
+    }
 
-function log(message) {
-  const time = new Date().toLocaleTimeString();
-  logDiv.innerHTML += `[${time}] ${message}<br>`;
-  logDiv.scrollTop = logDiv.scrollHeight;
-}
+    function addDocument() {
+      const doc = { id: docId++, name: "Dokumen " + docId, status: "waiting" };
+      queue.push(doc);
+      renderQueue();
+      log(` ${doc.name} ditambahkan ke antrian.`);
+    }
 
-function renderQueue() {
-  queueDiv.innerHTML = "";
-  queue.forEach(doc => {
-    const div = document.createElement("div");
-    div.classList.add("doc");
-    if (doc.status === "printing") div.classList.add("printing");
-    if (doc.status === "done") div.classList.add("done");
-    div.textContent = doc.name;
-    queueDiv.appendChild(div);
-  });
-}
+    async function printerDaemon() {
+      if (paused) return;
+    
+        if (queue.length > 0 && !printing) { const currentDoc = queue.find(d => d.status === "waiting"); 
+        if (!currentDoc) return;
+        printing = true;
 
-function addDocument() {
-  const doc = { id: docId++, name: "Dokumen " + docId, status: "waiting" };
-  queue.push(doc);
-  renderQueue();
-  log(` ${doc.name} ditambahkan ke antrian.`);
-}
+        currentDoc.status = "printing";
+        statusDiv.textContent = "Busy (Mencetak " + currentDoc.name + ")";
+        statusDiv.className = "status-busy";
+        renderQueue();
+        log(`🖨️ ${currentDoc.name} sedang dicetak...`);
+    
+        await new Promise(r => setTimeout(r, 2500)); 
 
-async function printerDaemon() {
-  if (paused) return;
+        currentDoc.status = "done";
+        log(`✅ ${currentDoc.name} selesai dicetak.`);
+        printing = false;
+        queue.shift(); // FIFO
+        renderQueue();
+    
+        if (queue.length === 0) {
+          statusDiv.textContent = "Idle";
+          statusDiv.className = "status-idle";
+          log("📭 Semua dokumen telah dicetak.");
+        } else {
+          printerDaemon(); 
+        }
+      }
+    }
 
-    if (queue.length > 0 && !printing) { const currentDoc = queue.find(d => d.status === "waiting"); 
-    if (!currentDoc) return;
-    printing = true;
+    document.getElementById("add").onclick = addDocument;
+    
+    document.getElementById("start").onclick = () => {
+      if (daemon) clearInterval(daemon);
+      paused = false;
+      daemon = setInterval(printerDaemon, 1000);
+      log("▶️ Printer daemon dimulai.");
+    };
+    
+    document.getElementById("pause").onclick = () => {
+      paused = true;
+      statusDiv.textContent = "Paused";
+      statusDiv.className = "status-busy";
+      log("⏸️ Proses pencetakan dijeda.");
+    };
 
-    currentDoc.status = "printing";
-    statusDiv.textContent = "Busy (Mencetak " + currentDoc.name + ")";
-    statusDiv.className = "status-busy";
-    renderQueue();
-    log(`🖨️ ${currentDoc.name} sedang dicetak...`);
-
-    await new Promise(r => setTimeout(r, 2500)); 
-
-    currentDoc.status = "done";
-    log(`✅ ${currentDoc.name} selesai dicetak.`);
-    printing = false;
-    queue.shift(); // FIFO
-    renderQueue();
-
-    if (queue.length === 0) {
+    document.getElementById("reset").onclick = () => {
+      queue = [];
+      printing = false;
+      paused = false;
+      docId = 0;
+      clearInterval(daemon);
       statusDiv.textContent = "Idle";
       statusDiv.className = "status-idle";
-      log("📭 Semua dokumen telah dicetak.");
-    } else {
-      printerDaemon(); 
-    }
-  }
-}
-
-document.getElementById("add").onclick = addDocument;
-
-document.getElementById("start").onclick = () => {
-  if (daemon) clearInterval(daemon);
-  paused = false;
-  daemon = setInterval(printerDaemon, 1000);
-  log("▶️ Printer daemon dimulai.");
-};
-
-document.getElementById("pause").onclick = () => {
-  paused = true;
-  statusDiv.textContent = "Paused";
-  statusDiv.className = "status-busy";
-  log("⏸️ Proses pencetakan dijeda.");
-};
-
-document.getElementById("reset").onclick = () => {
-  queue = [];
-  printing = false;
-  paused = false;
-  docId = 0;
-  clearInterval(daemon);
-  statusDiv.textContent = "Idle";
-  statusDiv.className = "status-idle";
-  log("🔄 Sistem direset.<br>");
-  renderQueue();
-};
+      log("🔄 Sistem direset.<br>");
+      renderQueue();
+    };
 </script>
-
 </body>
 </html>
+
